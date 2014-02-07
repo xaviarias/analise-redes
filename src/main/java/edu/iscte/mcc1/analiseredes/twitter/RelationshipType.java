@@ -1,18 +1,13 @@
-package edu.iscte.mcc1.analiseredes;
+package edu.iscte.mcc1.analiseredes.twitter;
 
 import twitter4j.Relationship;
 
-public enum RelationshipType {
+public enum RelationshipType implements TwitterEdge {
 
     /**
      * Any relation.
      */
     UNKNOWN(false),
-
-    /**
-     * Source has mentioned target.
-     */
-    MENTION(true),
 
     /**
      * Source follows target.
@@ -24,14 +19,24 @@ public enum RelationshipType {
      */
     FRIEND(false);
 
-    private final boolean symmetric;
+    private final boolean directed;
 
-    private RelationshipType(boolean symmetric) {
-        this.symmetric = symmetric;
+    private RelationshipType(boolean directed) {
+        this.directed = directed;
+    }
+
+    @Override
+    public String getLabel() {
+        return name();
+    }
+
+    @Override
+    public long getWeigth() {
+        return ordinal();
     }
 
     public boolean isDirected() {
-        return symmetric;
+        return directed;
     }
 
     public static RelationshipType fromRelationship(Relationship relationship) {

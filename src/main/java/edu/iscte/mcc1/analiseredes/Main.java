@@ -1,5 +1,6 @@
 package edu.iscte.mcc1.analiseredes;
 
+import edu.iscte.mcc1.analiseredes.twitter.RelationshipType;
 import twitter4j.Relationship;
 import twitter4j.Twitter;
 import twitter4j.TwitterFactory;

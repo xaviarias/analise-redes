@@ -1,15 +1,15 @@
-package edu.iscte.mcc1.analiseredes;
+package edu.iscte.mcc1.analiseredes.twitter;
 
+import com.google.common.collect.Sets;
 import com.google.common.io.Files;
-import twitter4j.Relationship;
-import twitter4j.Status;
-import twitter4j.Twitter;
-import twitter4j.TwitterException;
+import twitter4j.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.LineNumberReader;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.util.SortedSet;
 import java.util.logging.Logger;
 
 /**
@@ -19,18 +19,19 @@ import java.util.logging.Logger;
  * @see twitter4j.Twitter#timelines()
  * @see twitter4j.Twitter#friendsFollowers()
  */
-
 public abstract class TwitterClient {
-    protected static final Logger LOGGER =
-            Logger.getLogger(TwitterClient.class.getName());
+
+    protected static final Logger LOGGER = Logger.getLogger(TwitterClient.class.getName());
+
+    public static final String BASE_DIR = "D:\\Desarrollo\\Projects\\" +
+            "analise-redes\\src\\main\\resources\\graphs";
 
     protected static final long TIME_TO_WAIT = 18 * 1000;
-
-    protected static final int UNKNOWN_USER_ERROR = 163;
 
     protected static final Charset CHARSET = Charset.forName("UTF-8");
 
     protected final Twitter twitter;
+
 
     public TwitterClient(Twitter twitter) {
         this.twitter = twitter;
@@ -38,7 +39,7 @@ public abstract class TwitterClient {
 
     protected Status findStatus(final Long tweetId) {
         try {
-            return TwitterInvoker.invoke(new TwitterInvoker.TwitterCall<Status>() {
+            return TwitterInvoker.invoke(new TwitterCall<Status>() {
                 public Status call() throws TwitterException {
                     return twitter.showStatus(tweetId);
                 }
@@ -51,7 +52,7 @@ public abstract class TwitterClient {
 
     protected Relationship getRelationship(final String source, final String target) {
         try {
-            return TwitterInvoker.invoke(new TwitterInvoker.TwitterCall<Relationship>() {
+            return TwitterInvoker.invoke(new TwitterCall<Relationship>() {
                 public Relationship call() throws TwitterException {
                     return twitter.friendsFollowers().showFriendship(source, target);
                 }
@@ -62,14 +63,30 @@ public abstract class TwitterClient {
         }
     }
 
+    protected SortedSet<Long> readTweetsFromFile(String fileName) {
+        final SortedSet<Long> statuses = Sets.newTreeSet();
+
+        try {
+            LineNumberReader reader = new LineNumberReader(
+                    Files.newReader(new File(fileName), CHARSET));
+
+            String statusId;
+            while ((statusId = reader.readLine()) != null)
+                statuses.add(Long.parseLong(statusId));
+
+            return statuses;
+        } catch (Exception e) {
+            throw new IllegalStateException(fileName);
+        }
+    }
+
     protected Writer createWriter(String name) {
-        File folder = new File(
-                "D:\\Desarrollo\\Projects\\analise-redes\\src\\main\\resources\\gephi");
+        File folder = new File(BASE_DIR);
 
         if (!folder.exists())
             throw new IllegalStateException(folder.getPath());
 
-        File file = new File(folder, name + "-" + System.currentTimeMillis() + ".csv");
+        File file = new File(folder, name + ".csv");
         LOGGER.info("Exporting to file: " + file);
 
         try {
@@ -81,6 +98,21 @@ public abstract class TwitterClient {
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    protected void write(Writer writer, TwitterEdge edge, User source, User target) {
+        write(writer, edge, source.getId(), target.getId());
+    }
+
+    protected void write(Writer writer, TwitterEdge edge, long source, long target) {
+
+        StringBuilder builder = new StringBuilder();
+        builder.append(source).append(',').append(target).append(',');
+        builder.append(edge.isDirected() ? "Directed" : "Unidirected");
+        builder.append(',').append(edge.getLabel()).append(',');
+        builder.append(edge.getWeigth()).append(".0").append('\n');
+
+        write(writer, builder.toString());
     }
 
     protected void write(Writer writer, String s) {
@@ -109,34 +141,4 @@ public abstract class TwitterClient {
             throw new IllegalStateException(e);
         }
     }
-
-    public static class RelationshipPair {
-
-        String source, target;
-
-        static RelationshipPair of(final String from, final String to) {
-            return new RelationshipPair() {{
-                this.source = from;
-                this.target = to;
-            }};
-        }
-
-        @Override
-        public boolean equals(Object pair) {
-            if (this == pair) return true;
-            if (pair == null || getClass() != pair.getClass()) return false;
-
-            RelationshipPair that = (RelationshipPair) pair;
-            return source.equals(that.source) && target.equals(that.target);
-        }
-
-        @Override
-        public int hashCode() {
-            int result = source.hashCode();
-            result = 31 * result + target.hashCode();
-            return result;
-        }
-
-    }
-
 }

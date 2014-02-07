@@ -2,6 +2,9 @@ package edu.iscte.mcc1.analiseredes;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
+import edu.iscte.mcc1.analiseredes.twitter.RelationshipType;
+import edu.iscte.mcc1.analiseredes.twitter.TwitterClient;
+import edu.iscte.mcc1.analiseredes.twitter.TwitterErrorCode;
 import twitter4j.Relationship;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
@@ -89,7 +92,7 @@ public class MorerTwitterClient extends TwitterClient implements Runnable {
             try {
                 addRelationship(rels, source, target);
             } catch (TwitterException e) {
-                if (e.getErrorCode() == UNKNOWN_USER_ERROR) {
+                if (e.getErrorCode() == TwitterErrorCode.UNKNOWN_USER) {
                     LOGGER.warning("Unknown user: " + source);
                     unknownUsers.add(source);
                 } else {

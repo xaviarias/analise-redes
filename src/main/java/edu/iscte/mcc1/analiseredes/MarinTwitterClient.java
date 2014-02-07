@@ -1,21 +1,31 @@
 package edu.iscte.mcc1.analiseredes;
 
 import com.google.common.collect.Sets;
-import com.google.common.io.Files;
+import edu.iscte.mcc1.analiseredes.twitter.InteractionType;
+import edu.iscte.mcc1.analiseredes.twitter.RelationshipPair;
+import edu.iscte.mcc1.analiseredes.twitter.RelationshipType;
+import edu.iscte.mcc1.analiseredes.twitter.TwitterClient;
 import twitter4j.*;
 
-import java.io.File;
-import java.io.LineNumberReader;
 import java.io.Writer;
 import java.net.URL;
 import java.util.Set;
 import java.util.SortedSet;
 
-import static edu.iscte.mcc1.analiseredes.RelationshipType.*;
+import static edu.iscte.mcc1.analiseredes.twitter.RelationshipType.*;
 
 public class MarinTwitterClient extends TwitterClient implements Runnable {
 
     private final Set<User> statusSet = Sets.newHashSet();
+
+    private final Set<RelationshipPair> retweetPairs = Sets.newHashSet();
+    private final Set<RelationshipPair> mentionPairs = Sets.newHashSet();
+    private final Set<RelationshipPair> relationshipPairs = Sets.newHashSet();
+
+    private final Writer nodesWriter;
+    private final Writer retweetsWriter;
+    private final Writer mentionsWriter;
+    private final Writer relationshipsWriter;
 
 
     public static void main(String args[]) throws Exception {
@@ -30,6 +40,16 @@ public class MarinTwitterClient extends TwitterClient implements Runnable {
 
     public MarinTwitterClient(Twitter twitter) {
         super(twitter);
+
+        nodesWriter = createWriter("AbrilJulio2011 [Nodes]");
+        retweetsWriter = createWriter("AbrilJulio2011 Retweets [Edges]");
+        mentionsWriter = createWriter("AbrilJulio2011 Mentions [Edges]");
+        relationshipsWriter = createWriter("AbrilJulio2011 Relationships [Edges]");
+
+        write(nodesWriter, "Id,Label\n");
+        write(retweetsWriter, "Source,Target,Type,Label,Weight\n");
+        write(mentionsWriter, "Source,Target,Type,Label,Weight\n");
+        write(relationshipsWriter, "Source,Target,Type,Label,Weight\n");
     }
 
     @Override
@@ -37,84 +57,76 @@ public class MarinTwitterClient extends TwitterClient implements Runnable {
         URL url = getClass().getClassLoader()
                 .getResource("datasets/oscarmarin/AbrilJulio2011.txt");
 
+        if (url == null) throw new NullPointerException();
         SortedSet<Long> tweets = readTweetsFromFile(url.getFile());
-
-        Writer nodesWriter = createWriter("Morin [Nodes]");
-        Writer mentionsWriter = createWriter("Mentions [Edges]");
-        Writer relationshipWriter = createWriter("Relationships [Edges]");
-
-        write(nodesWriter, "Id,Label\n");
-        write(mentionsWriter, "Source,Target,Type,Label,Weight\n");
-        write(relationshipWriter, "Source,Target,Type,Label,Weight\n");
 
         for (Long tweetId : tweets) {
             Status status = findStatus(tweetId);
 
             if (status != null) {
-                processStatus(status, nodesWriter, mentionsWriter, relationshipWriter);
+                addUser(status.getUser());
+                addRetweet(status);
+                addMentions(status);
+
                 sleep(TIME_TO_WAIT);
             }
         }
     }
 
-    private void processStatus(Status status, Writer nodesWriter,
-                               Writer mentionsWriter, Writer relationshipsWriter) {
-
-        User user = status.getUser();
+    private void addUser(User user) {
         if (!statusSet.contains(user)) {
             write(nodesWriter, user.getId() + "," + user.getScreenName() + "\n");
             statusSet.add(user);
         }
+    }
 
+    private void addRetweet(Status status) {
         if (status.isRetweet()) {
-            User followed = status.getRetweetedStatus().getUser();
+            User user = status.getUser();
+            User retweeted = status.getRetweetedStatus().getUser();
 
-            Relationship relationship = getRelationship(
-                    user.getScreenName(), followed.getScreenName());
+            String source = user.getScreenName(), target = retweeted.getScreenName();
+            RelationshipPair pair = RelationshipPair.of(source, target);
+
+            if (!retweetPairs.contains(pair)) {
+                write(retweetsWriter, InteractionType.RETWEET, user, retweeted);
+                retweetPairs.add(pair);
+            }
+
+            addRelationship(pair);
+        }
+    }
+
+    private void addMentions(Status status) {
+        for (UserMentionEntity userMention : status.getUserMentionEntities()) {
+            String source = status.getUser().getScreenName(), target = userMention.getScreenName();
+            RelationshipPair pair = RelationshipPair.of(source, target);
+
+            if (!mentionPairs.contains(pair)) {
+                long sourceId = status.getUser().getId(), targetId = userMention.getId();
+                write(mentionsWriter, InteractionType.MENTION, sourceId, targetId);
+                mentionPairs.add(pair);
+            }
+
+            addRelationship(pair);
+        }
+    }
+
+    private void addRelationship(RelationshipPair pair) {
+        if (!relationshipPairs.contains(pair)) {
+            Relationship relationship = getRelationship(pair.source, pair.target);
 
             if (relationship != null) {
                 RelationshipType relationshipType = fromRelationship(relationship);
 
                 if (relationshipType != UNKNOWN) {
-                    long source = relationship.getSourceUserId();
-                    long target = relationship.getTargetUserId();
+                    long sourceId = relationship.getSourceUserId();
+                    long targetId = relationship.getTargetUserId();
 
-                    write(relationshipsWriter, source, target, relationshipType);
+                    write(relationshipsWriter, relationshipType, sourceId, targetId);
                 }
+                relationshipPairs.add(pair);
             }
-        }
-
-        for (UserMentionEntity userMention : status.getUserMentionEntities()) {
-            write(mentionsWriter, user.getId(), userMention.getId(), MENTION);
-        }
-    }
-
-    private void write(Writer edgesWriter, long source, long target,
-                       RelationshipType relationshipType) {
-
-        StringBuilder builder = new StringBuilder();
-        builder.append(source).append(",").append(target).append(",");
-        builder.append(relationshipType.isDirected() ? "Directed" : "Unidirected");
-        builder.append(",").append(relationshipType.name()).append(",");
-        builder.append(relationshipType.ordinal()).append(".0").append('\n');
-
-        write(edgesWriter, builder.toString());
-    }
-
-    private SortedSet<Long> readTweetsFromFile(String fileName) {
-        final SortedSet<Long> statuses = Sets.newTreeSet();
-
-        try {
-            LineNumberReader reader = new LineNumberReader(
-                    Files.newReader(new File(fileName), CHARSET));
-
-            String statusId;
-            while ((statusId = reader.readLine()) != null)
-                statuses.add(Long.parseLong(statusId));
-
-            return statuses;
-        } catch (Exception e) {
-            throw new IllegalStateException(fileName);
         }
     }
 
