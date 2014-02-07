@@ -1,5 +1,6 @@
 package edu.iscte.mcc1.analiseredes.twitter;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 import twitter4j.*;
@@ -8,6 +9,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.Writer;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.SortedSet;
 import java.util.logging.Logger;
@@ -22,11 +26,6 @@ import java.util.logging.Logger;
 public abstract class TwitterClient {
 
     protected static final Logger LOGGER = Logger.getLogger(TwitterClient.class.getName());
-
-    public static final String BASE_DIR = "D:\\Desarrollo\\Projects\\" +
-            "analise-redes\\src\\main\\resources\\graphs";
-
-    protected static final long TIME_TO_WAIT = 18 * 1000;
 
     protected static final Charset CHARSET = Charset.forName("UTF-8");
 
@@ -63,12 +62,12 @@ public abstract class TwitterClient {
         }
     }
 
-    protected SortedSet<Long> readTweetsFromFile(String fileName) {
+    protected SortedSet<Long> readTweetsFromFile(File file) {
         final SortedSet<Long> statuses = Sets.newTreeSet();
 
         try {
             LineNumberReader reader = new LineNumberReader(
-                    Files.newReader(new File(fileName), CHARSET));
+                    Files.newReader(file, CHARSET));
 
             String statusId;
             while ((statusId = reader.readLine()) != null)
@@ -76,26 +75,20 @@ public abstract class TwitterClient {
 
             return statuses;
         } catch (Exception e) {
-            throw new IllegalStateException(fileName);
+            throw new IllegalStateException(e);
         }
     }
 
     protected Writer createWriter(String name) {
-        File folder = new File(BASE_DIR);
-
-        if (!folder.exists())
-            throw new IllegalStateException(folder.getPath());
-
-        File file = new File(folder, name + ".csv");
-        LOGGER.info("Exporting to file: " + file);
+        File file = new File(getSourceRoot(), "src/main/resources/graphs/" + name + ".csv");
+        LOGGER.info("Created writer for file: " + file);
 
         try {
-            if (!file.createNewFile()) {
+            if (!file.exists() && !file.createNewFile())
                 throw new IllegalStateException("Cannot create file: " + file);
-            }
 
             return Files.newWriter(file, CHARSET);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new IllegalStateException(e);
         }
     }
@@ -141,4 +134,16 @@ public abstract class TwitterClient {
             throw new IllegalStateException(e);
         }
     }
+
+    protected File getSourceRoot() {
+        URL url = getClass().getClassLoader().getResource(".");
+        if (url == null) throw new NullPointerException();
+
+        try {
+            return new File(url.toURI()).getParentFile().getParentFile();
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
 }

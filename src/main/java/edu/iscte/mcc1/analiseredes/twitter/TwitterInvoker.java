@@ -6,13 +6,10 @@ import java.util.logging.Logger;
 
 public class TwitterInvoker {
 
-    protected static final Logger LOGGER = Logger.getLogger(TwitterInvoker.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(TwitterInvoker.class.getName());
 
-    public static final int RATE_WINDOW = 15 * 60 * 1000;
-
-
-    private TwitterInvoker() {
-    }
+    private static final int TIME_TO_WAIT = 18 * 1000;
+    private static final int RATE_WINDOW = 15 * 60 * 1000;
 
     /**
      * Calls TwitterCall until success.
@@ -20,28 +17,30 @@ public class TwitterInvoker {
      * @throws TwitterException if a non-timeout exception occurs.
      */
     public static <T> T invoke(TwitterCall<T> callable) throws TwitterException {
+        long timeToWait = TIME_TO_WAIT;
         for (; ; ) {
             try {
                 return callable.call();
             } catch (TwitterException te) {
                 if (te.getErrorCode() == TwitterErrorCode.RATE_EXCEEDED) {
                     LOGGER.warning("Too many requests!");
-
-                    try {
-                        if (0 < te.getRetryAfter()) {
-                            Thread.sleep(te.getRetryAfter());
-                        } else {
-                            Thread.sleep(RATE_WINDOW);
-                        }
-                    } catch (InterruptedException ie) {
-                        LOGGER.severe("Unexpected exception");
-                        throw new IllegalStateException(ie);
-                    }
+                    timeToWait = 0 < te.getRetryAfter() ?
+                            te.getRetryAfter() : RATE_WINDOW;
                 } else {
                     throw te;
                 }
+            } finally {
+                try {
+                    Thread.sleep(timeToWait);
+                } catch (InterruptedException ie) {
+                    LOGGER.severe("Unexpected exception");
+                    throw new IllegalStateException(ie);
+                }
             }
         }
+    }
+
+    private TwitterInvoker() {
     }
 
 }

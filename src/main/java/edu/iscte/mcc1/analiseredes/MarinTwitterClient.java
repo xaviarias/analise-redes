@@ -7,6 +7,7 @@ import edu.iscte.mcc1.analiseredes.twitter.RelationshipType;
 import edu.iscte.mcc1.analiseredes.twitter.TwitterClient;
 import twitter4j.*;
 
+import java.io.File;
 import java.io.Writer;
 import java.net.URL;
 import java.util.Set;
@@ -42,9 +43,9 @@ public class MarinTwitterClient extends TwitterClient implements Runnable {
         super(twitter);
 
         nodesWriter = createWriter("AbrilJulio2011 [Nodes]");
-        retweetsWriter = createWriter("AbrilJulio2011 Retweets [Edges]");
-        mentionsWriter = createWriter("AbrilJulio2011 Mentions [Edges]");
-        relationshipsWriter = createWriter("AbrilJulio2011 Relationships [Edges]");
+        retweetsWriter = createWriter("Retweets [Edges]");
+        mentionsWriter = createWriter("Mentions [Edges]");
+        relationshipsWriter = createWriter("Relationships [Edges]");
 
         write(nodesWriter, "Id,Label\n");
         write(retweetsWriter, "Source,Target,Type,Label,Weight\n");
@@ -54,11 +55,10 @@ public class MarinTwitterClient extends TwitterClient implements Runnable {
 
     @Override
     public void run() {
-        URL url = getClass().getClassLoader()
-                .getResource("datasets/oscarmarin/AbrilJulio2011.txt");
+        File tweetsFile = new File(getSourceRoot(),
+                "src/main/resources/datasets/oscarmarin/AbrilJulio2011.txt");
 
-        if (url == null) throw new NullPointerException();
-        SortedSet<Long> tweets = readTweetsFromFile(url.getFile());
+        SortedSet<Long> tweets = readTweetsFromFile(tweetsFile);
 
         for (Long tweetId : tweets) {
             Status status = findStatus(tweetId);
@@ -81,7 +81,7 @@ public class MarinTwitterClient extends TwitterClient implements Runnable {
     }
 
     private void addRetweet(Status status) {
-        if (status.isRetweet()) {
+        if (status.isRetweeted()) {
             User user = status.getUser();
             User retweeted = status.getRetweetedStatus().getUser();
 
