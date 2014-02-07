@@ -67,8 +67,6 @@ public class MarinTwitterClient extends TwitterClient implements Runnable {
                 addUser(status.getUser());
                 addRetweet(status);
                 addMentions(status);
-
-                sleep(TIME_TO_WAIT);
             }
         }
     }

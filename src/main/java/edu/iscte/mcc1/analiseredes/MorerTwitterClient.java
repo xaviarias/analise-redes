@@ -99,7 +99,6 @@ public class MorerTwitterClient extends TwitterClient implements Runnable {
                     LOGGER.warning("Error: " + e.getErrorMessage());
                 }
             }
-            sleep(TIME_TO_WAIT);
         }
 
         LOGGER.info("Relationships: " + rels);
