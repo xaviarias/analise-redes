@@ -79,7 +79,7 @@ public class MarinTwitterClient extends TwitterClient implements Runnable {
     }
 
     private void addRetweet(Status status) {
-        if (status.isRetweeted()) {
+        if (status.isRetweet()) {
             User user = status.getUser();
             User retweeted = status.getRetweetedStatus().getUser();
 
