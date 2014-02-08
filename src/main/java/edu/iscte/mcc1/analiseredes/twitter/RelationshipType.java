@@ -2,7 +2,7 @@ package edu.iscte.mcc1.analiseredes.twitter;
 
 import twitter4j.Relationship;
 
-public enum RelationshipType implements TwitterEdge {
+public enum RelationshipType implements TwitterRelation {
 
     /**
      * Any relation.

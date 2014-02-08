@@ -1,6 +1,6 @@
 package edu.iscte.mcc1.analiseredes.twitter;
 
-public enum InteractionType implements TwitterEdge {
+public enum InteractionType implements TwitterRelation {
 
     RETWEET, MENTION;
 

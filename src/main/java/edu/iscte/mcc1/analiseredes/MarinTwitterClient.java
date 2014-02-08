@@ -9,15 +9,15 @@ import twitter4j.*;
 
 import java.io.File;
 import java.io.Writer;
-import java.net.URL;
 import java.util.Set;
 import java.util.SortedSet;
 
-import static edu.iscte.mcc1.analiseredes.twitter.RelationshipType.*;
+import static edu.iscte.mcc1.analiseredes.twitter.RelationshipType.UNKNOWN;
+import static edu.iscte.mcc1.analiseredes.twitter.RelationshipType.fromRelationship;
 
 public class MarinTwitterClient extends TwitterClient implements Runnable {
 
-    private final Set<User> statusSet = Sets.newHashSet();
+    private final Set<User> userSet = Sets.newHashSet();
 
     private final Set<RelationshipPair> retweetPairs = Sets.newHashSet();
     private final Set<RelationshipPair> mentionPairs = Sets.newHashSet();
@@ -31,7 +31,7 @@ public class MarinTwitterClient extends TwitterClient implements Runnable {
 
     public static void main(String args[]) throws Exception {
 
-        // The factory instance is re-useable and thread safe.
+        // The factory instance is re-usable and thread safe.
         TwitterFactory factory = new TwitterFactory();
         Twitter twitter = factory.getInstance();
 
@@ -55,9 +55,7 @@ public class MarinTwitterClient extends TwitterClient implements Runnable {
 
     @Override
     public void run() {
-        File tweetsFile = new File(getSourceRoot(),
-                "src/main/resources/datasets/oscarmarin/AbrilJulio2011.txt");
-
+        File tweetsFile = new File(getSourceRoot(), "datasets/oscarmarin/AbrilJulio2011.txt");
         SortedSet<Long> tweets = readTweetsFromFile(tweetsFile);
 
         for (Long tweetId : tweets) {
@@ -72,9 +70,9 @@ public class MarinTwitterClient extends TwitterClient implements Runnable {
     }
 
     private void addUser(User user) {
-        if (!statusSet.contains(user)) {
+        if (!userSet.contains(user)) {
             write(nodesWriter, user.getId() + "," + user.getScreenName() + "\n");
-            statusSet.add(user);
+            userSet.add(user);
         }
     }
 

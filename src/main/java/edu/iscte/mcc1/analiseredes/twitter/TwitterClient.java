@@ -1,6 +1,5 @@
 package edu.iscte.mcc1.analiseredes.twitter;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 import twitter4j.*;
@@ -9,7 +8,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.Writer;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -80,7 +78,9 @@ public abstract class TwitterClient {
     }
 
     protected Writer createWriter(String name) {
-        File file = new File(getSourceRoot(), "src/main/resources/graphs/" + name + ".csv");
+        File file = new File(getSourceRoot().getParentFile()
+                .getParentFile(), "out/" + name + ".csv");
+
         LOGGER.info("Created writer for file: " + file);
 
         try {
@@ -93,17 +93,17 @@ public abstract class TwitterClient {
         }
     }
 
-    protected void write(Writer writer, TwitterEdge edge, User source, User target) {
-        write(writer, edge, source.getId(), target.getId());
+    protected void write(Writer writer, TwitterRelation relation, User source, User target) {
+        write(writer, relation, source.getId(), target.getId());
     }
 
-    protected void write(Writer writer, TwitterEdge edge, long source, long target) {
+    protected void write(Writer writer, TwitterRelation relation, long source, long target) {
 
         StringBuilder builder = new StringBuilder();
         builder.append(source).append(',').append(target).append(',');
-        builder.append(edge.isDirected() ? "Directed" : "Unidirected");
-        builder.append(',').append(edge.getLabel()).append(',');
-        builder.append(edge.getWeigth()).append(".0").append('\n');
+        builder.append(relation.isDirected() ? "Directed" : "Unidirected");
+        builder.append(',').append(relation.getLabel()).append(',');
+        builder.append(relation.getWeigth()).append(".0").append('\n');
 
         write(writer, builder.toString());
     }
@@ -140,7 +140,7 @@ public abstract class TwitterClient {
         if (url == null) throw new NullPointerException();
 
         try {
-            return new File(url.toURI()).getParentFile().getParentFile();
+            return new File(url.toURI());
         } catch (URISyntaxException e) {
             throw new IllegalStateException(e);
         }

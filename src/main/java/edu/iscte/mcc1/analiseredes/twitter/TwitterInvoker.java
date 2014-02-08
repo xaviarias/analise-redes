@@ -8,8 +8,9 @@ public class TwitterInvoker {
 
     private static final Logger LOGGER = Logger.getLogger(TwitterInvoker.class.getName());
 
-    private static final int TIME_TO_WAIT = 18 * 1000;
+    private static final int CALLS_PER_WINDOW = 180;
     private static final int RATE_WINDOW = 15 * 60 * 1000;
+    private static final int TIME_TO_WAIT = RATE_WINDOW / CALLS_PER_WINDOW;
 
     /**
      * Calls TwitterCall until success.

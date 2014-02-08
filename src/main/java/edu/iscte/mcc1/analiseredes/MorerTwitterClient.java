@@ -8,14 +8,24 @@ import edu.iscte.mcc1.analiseredes.twitter.TwitterErrorCode;
 import twitter4j.Relationship;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
+import twitter4j.TwitterFactory;
 
 import java.io.File;
 import java.io.Writer;
 import java.net.URL;
 import java.util.*;
 
-
 public class MorerTwitterClient extends TwitterClient implements Runnable {
+
+    public static void main(String args[]) throws Exception {
+
+        // The factory instance is re-usable and thread safe.
+        TwitterFactory factory = new TwitterFactory();
+        Twitter twitter = factory.getInstance();
+
+        MorerTwitterClient client = new MorerTwitterClient(twitter);
+        client.run();
+    }
 
     public MorerTwitterClient(Twitter twitter) {
         super(twitter);

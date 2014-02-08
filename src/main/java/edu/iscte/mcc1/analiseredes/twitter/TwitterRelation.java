@@ -1,6 +1,6 @@
 package edu.iscte.mcc1.analiseredes.twitter;
 
-public interface TwitterEdge {
+public interface TwitterRelation {
 
     String getLabel();
 
