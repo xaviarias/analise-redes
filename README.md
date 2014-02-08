@@ -13,7 +13,7 @@ oauth.accessToken=
 oauth.accessTokenSecret=
 ```
 
-Este ficheiro debe estar na pasta [link](tree/master/src/main/resources).
+Este ficheiro debe estar nesta [pasta](./src/main/resources).
 
-(Mais informação de como obter estas propiedades aqui [link](https://apps.twitter.com).)
+(Mais informação de como obter estas propiedades [aqui](https://apps.twitter.com).)
 
